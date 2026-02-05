@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -18,7 +19,18 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("client connected")
-		conn.Close()
+
+		go handleConnection(conn)
 	}
+}
+
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+	scanner := bufio.NewScanner(conn)
+
+	for scanner.Scan() {
+		fmt.Printf("received: %s\n", scanner.Text())
+	}
+
+	fmt.Printf("client disconnected!\n")
 }
