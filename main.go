@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -29,7 +30,14 @@ func handleConnection(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 
 	for scanner.Scan() {
-		fmt.Printf("received: %s\n", scanner.Text())
+		line := scanner.Bytes()
+		var msg Message
+		err := json.Unmarshal(line, &msg)
+		if err != nil {
+			fmt.Printf("Invalid JSON received!\n")
+			continue
+		}
+		fmt.Printf("Parsed successfully -> Command: %s | Topic: %s | Payload: %s\n", msg.Command, msg.Topic, msg.Payload)
 	}
 
 	fmt.Printf("client disconnected!\n")
