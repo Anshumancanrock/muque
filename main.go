@@ -10,6 +10,9 @@ import (
 
 func main() {
 	fmt.Println("Mini message queue : ")
+	myBroker := &Broker{
+		Subscribers: make(map[string][]net.Conn),
+	}
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatal(err)
@@ -21,11 +24,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, myBroker)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, b *Broker) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)
 
@@ -38,6 +41,10 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 		fmt.Printf("Parsed successfully -> Command: %s | Topic: %s | Payload: %s\n", msg.Command, msg.Topic, msg.Payload)
+
+		if msg.Command == "SUB" {
+			b.Subscribe(msg.Topic, conn)
+		}
 	}
 
 	fmt.Printf("client disconnected!\n")
