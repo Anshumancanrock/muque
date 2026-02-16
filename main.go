@@ -42,8 +42,11 @@ func handleConnection(conn net.Conn, b *Broker) {
 		}
 		fmt.Printf("Parsed successfully -> Command: %s | Topic: %s | Payload: %s\n", msg.Command, msg.Topic, msg.Payload)
 
-		if msg.Command == "SUB" {
+		switch msg.Command {
+		case "SUB":
 			b.Subscribe(msg.Topic, conn)
+		case "PUB":
+			b.Publish(msg.Topic, msg.Payload)
 		}
 	}
 
