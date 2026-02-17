@@ -11,7 +11,7 @@ import (
 func main() {
 	fmt.Println("Mini message queue : ")
 	myBroker := &Broker{
-		Subscribers: make(map[string][]net.Conn),
+		Subscribers: make(map[string][]*Subscriber),
 	}
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -30,6 +30,7 @@ func main() {
 
 func handleConnection(conn net.Conn, b *Broker) {
 	defer conn.Close()
+	sub := &Subscriber{Conn: conn}
 	scanner := bufio.NewScanner(conn)
 
 	for scanner.Scan() {
@@ -44,7 +45,7 @@ func handleConnection(conn net.Conn, b *Broker) {
 
 		switch msg.Command {
 		case "SUB":
-			b.Subscribe(msg.Topic, conn)
+			b.Subscribe(msg.Topic, sub)
 		case "PUB":
 			b.Publish(msg.Topic, msg.Payload)
 		}
