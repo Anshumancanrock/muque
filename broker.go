@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"sync"
 )
 
 type Message struct {
@@ -11,8 +12,18 @@ type Message struct {
 	Payload string `json:"payload"`
 }
 
+// Subscriber wraps a connection with its own mutex to serialize writes.
 type Subscriber struct {
 	Conn net.Conn
+	Mu   sync.Mutex
+}
+
+// WriteMsg sends a message to this subscriber, serialized via its mutex.
+func (s *Subscriber) WriteMsg(data []byte) error {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+	_, err := s.Conn.Write(data)
+	return err
 }
 
 type Broker struct {
@@ -30,7 +41,7 @@ func (b *Broker) Publish(topic string, payload string) {
 	outgoingMsg := []byte(fmt.Sprintf("BROKER BROADCAST [%s]: %s\n", topic, payload))
 
 	for _, sub := range subscribers {
-		sub.Conn.Write(outgoingMsg)
+		sub.WriteMsg(outgoingMsg)
 	}
 
 	fmt.Printf("Broadcasted to %d subscribers on topic: %s\n", len(subscribers), topic)
