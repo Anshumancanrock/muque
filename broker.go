@@ -29,20 +29,25 @@ func (s *Subscriber) WriteMsg(data []byte) error {
 type Broker struct {
 	// Topic -> Array of Subscribers (what I call the hash table of pub/sub)
 	Subscribers map[string][]*Subscriber
+	Lock        sync.RWMutex
 }
 
 func (b *Broker) Subscribe(topic string, sub *Subscriber) {
+	b.Lock.Lock()
 	b.Subscribers[topic] = append(b.Subscribers[topic], sub)
+	b.Lock.Unlock()
 	fmt.Printf("New subscriber added to topic: %s\n", topic)
 }
 
 func (b *Broker) Publish(topic string, payload string) {
+	b.Lock.RLock()
 	subscribers := b.Subscribers[topic]
 	outgoingMsg := []byte(fmt.Sprintf("BROKER BROADCAST [%s]: %s\n", topic, payload))
 
 	for _, sub := range subscribers {
 		sub.WriteMsg(outgoingMsg)
 	}
+	b.Lock.RUnlock()
 
 	fmt.Printf("Broadcasted to %d subscribers on topic: %s\n", len(subscribers), topic)
 }
