@@ -51,3 +51,18 @@ func (b *Broker) Publish(topic string, payload string) {
 
 	fmt.Printf("Broadcasted to %d subscribers on topic: %s\n", len(subscribers), topic)
 }
+
+func (b *Broker) RemoveSubscriber(topic string, target *Subscriber) {
+	b.Lock.Lock()
+	defer b.Lock.Unlock()
+
+	subscribers := b.Subscribers[topic]
+
+	for i, sub := range subscribers {
+		if sub == target {
+			b.Subscribers[topic] = append(subscribers[:i], subscribers[i+1:]...)
+			fmt.Printf("Cleaned up dead socket from topic: %s\n", topic)
+			break
+		}
+	}
+}
