@@ -19,6 +19,7 @@ type Subscriber struct {
 }
 
 // WriteMsg sends a message to this subscriber, serialized via its mutex.
+// Returns an error if the write fails (dead connection).
 func (s *Subscriber) WriteMsg(data []byte) error {
 	s.Mu.Lock()
 	defer s.Mu.Unlock()
@@ -44,10 +45,18 @@ func (b *Broker) Publish(topic string, payload string) {
 	subscribers := b.Subscribers[topic]
 	outgoingMsg := []byte(fmt.Sprintf("BROKER BROADCAST [%s]: %s\n", topic, payload))
 
+	var dead []*Subscriber
 	for _, sub := range subscribers {
-		sub.WriteMsg(outgoingMsg)
+		if err := sub.WriteMsg(outgoingMsg); err != nil {
+			dead = append(dead, sub)
+		}
 	}
 	b.Lock.RUnlock()
+
+	// Clean up dead connections outside the read lock
+	for _, sub := range dead {
+		b.RemoveSubscriber(topic, sub)
+	}
 
 	fmt.Printf("Broadcasted to %d subscribers on topic: %s\n", len(subscribers), topic)
 }
@@ -60,7 +69,9 @@ func (b *Broker) RemoveSubscriber(topic string, target *Subscriber) {
 
 	for i, sub := range subscribers {
 		if sub == target {
+			// Append everything BEFORE the index, with everything AFTER the index.
 			b.Subscribers[topic] = append(subscribers[:i], subscribers[i+1:]...)
+
 			fmt.Printf("Cleaned up dead socket from topic: %s\n", topic)
 			break
 		}
