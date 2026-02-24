@@ -31,6 +31,14 @@ func main() {
 func handleConnection(conn net.Conn, b *Broker) {
 	defer conn.Close()
 	sub := &Subscriber{Conn: conn}
+	var myTopics []string
+
+	defer func() {
+		for _, topic := range myTopics {
+			b.RemoveSubscriber(topic, sub)
+		}
+	}()
+
 	scanner := bufio.NewScanner(conn)
 
 	for scanner.Scan() {
@@ -46,6 +54,7 @@ func handleConnection(conn net.Conn, b *Broker) {
 		switch msg.Command {
 		case "SUB":
 			b.Subscribe(msg.Topic, sub)
+			myTopics = append(myTopics, msg.Topic)
 		case "PUB":
 			b.Publish(msg.Topic, msg.Payload)
 		}
