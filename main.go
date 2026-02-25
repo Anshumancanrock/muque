@@ -21,7 +21,8 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Println("Accept error:", err)
+			continue
 		}
 
 		go handleConnection(conn, myBroker)
@@ -57,6 +58,8 @@ func handleConnection(conn net.Conn, b *Broker) {
 			myTopics = append(myTopics, msg.Topic)
 		case "PUB":
 			b.Publish(msg.Topic, msg.Payload)
+		default:
+			fmt.Println("Unknown command received.")
 		}
 	}
 
